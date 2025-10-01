@@ -1,0 +1,383 @@
+# API ENDPOINTS DOCUMENTATION
+Base URL: http://localhost:3000/pajar
+
+## � PUBLIC ENDPOINTS (No Authentication Required)
+
+### 📝 POSTS (With Pagination Support)
+GET    /posts                      - Get all posts with pagination
+                                   - Query params: ?page=1&limit=10
+                                   - Returns: posts array + pagination metadata
+GET    /posts/search               - Search posts with pagination
+                                   - Query params: ?q=keyword&page=1&limit=10
+GET    /posts/trending             - Get trending posts with pagination
+                                   - Query params: ?page=1&limit=10
+GET    /posts/:id                  - Get post by ID (increments view count)
+POST   /posts                      - Create new post with images (public creation)
+GET    /posts/:id/comments         - Get comments for a specific post
+POST   /posts/:id/comments         - Add comment to a post
+
+### ❤️ POST INTERACTIONS  
+POST   /posts/:id/like             - Like/Unlike a post
+GET    /posts/:id/like-status      - Check if user has liked a post
+POST   /posts/:id/share            - Share/Unshare a post (tracked)
+GET    /posts/:id/share-status     - Check if user has shared a post
+POST   /posts/:id/share-count      - Increment share count (external shares)
+
+### 📰 ARTICLES (With Pagination Support)
+GET    /articles                   - Get published articles with pagination
+                                   - Query params: ?page=1&limit=10
+GET    /articles/featured          - Get featured articles with pagination
+                                   - Query params: ?page=1&limit=5
+GET    /articles/trending          - Get trending articles with pagination
+                                   - Query params: ?page=1&limit=10
+GET    /articles/search            - Search articles with pagination
+                                   - Query params: ?q=keyword&page=1&limit=10
+GET    /articles/:id               - Get article by ID (increments view count)
+
+### ❤️ ARTICLE INTERACTIONS
+POST   /articles/:id/like          - Like/Unlike an article
+GET    /articles/:id/like-status   - Check if user has liked an article
+POST   /articles/:id/share         - Share/Unshare an article (tracked)
+GET    /articles/:id/share-status  - Check if user has shared an article
+POST   /articles/:id/share-count   - Increment share count (external shares)
+
+### 📰 PUBLIC ARTICLES (Public Only Access - With Pagination)
+GET    /public/articles            - Get all published articles (public only, no drafts)
+                                   - Query params: ?page=1&limit=10
+GET    /public/articles/paginated  - Explicit pagination endpoint (same as above)
+GET    /public/articles/featured   - Get featured published articles with pagination
+                                   - Query params: ?page=1&limit=5
+GET    /public/articles/trending   - Get trending published articles with pagination
+                                   - Query params: ?page=1&limit=10
+GET    /public/articles/search     - Search published articles with pagination
+                                   - Query params: ?q=keyword&page=1&limit=10
+GET    /public/articles/:id        - Get specific published article (no drafts)
+POST   /public/articles/:id/like   - Like/Unlike an article
+GET    /public/articles/:id/like-status - Check if user has liked an article
+POST   /public/articles/:id/share  - Share/Unshare an article (tracked)
+GET    /public/articles/:id/share-status - Check if user has shared an article
+POST   /public/articles/:id/share-count - Increment share count (external shares)
+
+### 📝 PUBLIC POSTS (Public Only Access - With Pagination)
+GET    /public/posts               - Get all posts (public view) with pagination
+                                   - Query params: ?page=1&limit=10
+GET    /public/posts/paginated     - Explicit pagination endpoint (same as above)
+GET    /public/posts/search        - Search posts with pagination
+                                   - Query params: ?q=keyword&page=1&limit=10
+GET    /public/posts/trending      - Get trending posts with pagination
+                                   - Query params: ?page=1&limit=10
+GET    /public/posts/:id           - Get specific post (public view)
+POST   /public/posts/:id/like      - Like/Unlike a post
+GET    /public/posts/:id/like-status - Check if user has liked a post
+POST   /public/posts/:id/share     - Share/Unshare a post (tracked)
+GET    /public/posts/:id/share-status - Check if user has shared a post
+POST   /public/posts/:id/share-count - Increment share count (external shares)
+
+### �💬 COMMENTS
+GET    /comments                   - Get all comments with like counts
+GET    /comments/:id               - Get comment by ID
+POST   /comments                   - Create new comment (public)
+
+### ❤️ COMMENT INTERACTIONS
+POST   /comments/:id/like          - Like/Unlike a comment
+GET    /comments/:id/like-status   - Check if user has liked a comment
+
+### 📊 STATISTICS (Public)
+GET    /stats/popular/:type        - Get popular content (type: posts|articles|all)
+                                   - Query params: ?limit=10
+                                   - Returns: view_count, like_count, shared_count, comment_count, image_count
+
+### 🎪 EVENTS (Public)
+GET    /events/upcoming            - Get upcoming published events
+GET    /events/:id                 - Get event by ID
+GET    /events/search              - Search events by query (?q=search_term)
+
+### 📁 STATIC FILES
+GET    /uploads/:filename          - Access uploaded images and files
+
+## 🔒 ADMIN ENDPOINTS (Require Admin Authentication)
+Header: Authorization: Bearer <jwt_token>
+
+### 📝 POST MANAGEMENT
+PUT    /posts/:id                  - Update post (admin only)
+DELETE /posts/:id                  - Delete post (admin only)  
+GET    /posts/:id/stats            - Get detailed post statistics
+
+### 📰 ARTICLE MANAGEMENT
+POST   /articles                   - Create new article with images
+PUT    /articles/:id               - Update article with images
+DELETE /articles/:id               - Delete article
+GET    /articles/:id/stats         - Get detailed article statistics
+
+### 💬 COMMENT MANAGEMENT
+PUT    /comments/:id               - Update comment (admin only)
+DELETE /comments/:id               - Delete comment (admin only)
+GET    /comments/:id/stats         - Get comment statistics
+
+### 📊 STATISTICS (Admin)
+GET    /stats/dashboard            - Dashboard statistics overview
+GET    /stats/content/:type        - Content statistics by type (post|comment|article)
+GET    /stats/content/:type/:id    - Detailed statistics for specific content
+GET    /stats/export               - Export statistics to CSV
+POST   /stats/clean                - Clean old statistics (keep last N days)
+
+### 🎪 EVENT MANAGEMENT
+POST   /events                     - Create new event with Zoom integration
+PUT    /events/:id                 - Update event
+DELETE /events/:id                 - Delete event
+GET    /events                     - Get all events (including drafts)
+GET    /events/date-range          - Get events by date range
+GET    /events/stats               - Get event statistics
+
+## 🔐 AUTHENTICATION ENDPOINTS
+
+### 🚪 LOGIN
+POST   /auth/login                 - Login with username/password
+                                   - Body: { "username": "admin", "password": "password" }
+                                   - Returns: { "token": "jwt_token", "user": {...} }
+
+### 👤 USER MANAGEMENT (Admin)
+POST   /auth/create-admin          - Create new admin user
+POST   /auth/create-superadmin     - Create new superadmin user
+GET    /auth/users                 - List all users
+PUT    /auth/users/:id             - Update user
+DELETE /auth/users/:id             - Delete user
+
+## 📋 REQUEST/RESPONSE FORMATS
+
+### Authentication Header
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+### Image Upload (Multipart Form Data)
+```
+Content-Type: multipart/form-data
+
+fields:
+- title: "Post Title"
+- content: "Post Content"  
+- author: "Author Name"
+- images: [file1.jpg, file2.png] (max 10 files)
+```
+
+### Standard Response Format
+```json
+{
+  "success": true,
+  "message": "Operation successful",
+  "data": {...}
+}
+```
+
+### Pagination Response Format (Posts & Articles)
+```json
+{
+  "posts": [...],
+  "pagination": {
+    "currentPage": 1,
+    "limit": 10,
+    "totalItems": 150,
+    "totalPages": 15,
+    "hasNext": true,
+    "hasPrev": false,
+    "nextPage": 2,
+    "prevPage": null
+  }
+}
+```
+
+### Search Response Format (Posts & Articles)
+```json
+{
+  "posts": [...],
+  "query": "search keyword",
+  "pagination": {
+    "currentPage": 1,
+    "limit": 10,
+    "totalItems": 25,
+    "totalPages": 3,
+    "hasNext": true,
+    "hasPrev": false,
+    "nextPage": 2,
+    "prevPage": null
+  }
+}
+```
+
+### Error Response Format  
+```json
+{
+  "error": "Error message description"
+}
+```
+
+## 🔢 HTTP STATUS CODES
+- 200: Success
+- 201: Created
+- 400: Bad Request (validation error)
+- 401: Unauthorized (missing/invalid token)
+- 403: Forbidden (insufficient permissions)
+- 404: Not Found
+- 500: Internal Server Error
+
+## 📊 DATA FIELDS
+
+### Post Object
+```json
+{
+  "id": 1,
+  "title": "Post Title",
+  "content": "Post content...",
+  "author": "Author Name",
+  "view_count": 150,
+  "like_count": 25,
+  "shared_count": 8,
+  "comment_count": 12,
+  "image_count": 3,
+  "created_at": "2025-09-01T10:00:00.000Z",
+  "updated_at": "2025-09-01T10:00:00.000Z",
+  "images": [
+    {
+      "id": 1,
+      "filename": "image.jpg",
+      "original_name": "photo.jpg", 
+      "path": "/pajar/uploads/image.jpg"
+    }
+  ]
+}
+```
+
+### Article Object
+```json
+{
+  "id": 1,
+  "title": "Article Title",
+  "content": "Article content...",
+  "excerpt": "Brief description...",
+  "author": "Author Name",
+  "status": "published|draft",
+  "featured": true,
+  "tags": "tag1,tag2,tag3",
+  "view_count": 500,
+  "like_count": 75,
+  "shared_count": 20,
+  "image_count": 2,
+  "published_at": "2025-09-01T10:00:00.000Z",
+  "created_at": "2025-09-01T10:00:00.000Z"
+}
+```
+
+### Event Object
+```json
+{
+  "id": 1,
+  "title": "Workshop Title",
+  "description": "Event description...",
+  "event_date": "2025-09-15T10:00:00.000Z",
+  "duration_minutes": 360,
+  "location": "Event Location",
+  "max_participants": 50,
+  "status": "published|draft|cancelled|completed",
+  "priority": "low|normal|high|urgent",
+  "created_by": "admin",
+  "zoom_link": "https://zoom.us/j/123456789",
+  "zoom_meeting_id": "123-456-789",
+  "zoom_password": "password123",
+  "image_count": 1
+}
+```
+
+## 🎯 USAGE EXAMPLES
+
+### Create Post with Images
+```bash
+curl -X POST http://localhost:3000/pajar/posts \
+  -F "title=My New Post" \
+  -F "content=This is my post content" \
+  -F "author=John Doe" \
+  -F "images=@image1.jpg" \
+  -F "images=@image2.png"
+```
+
+### Get Posts with Pagination
+```bash
+curl "http://localhost:3000/pajar/posts?page=1&limit=10"
+curl "http://localhost:3000/pajar/public/posts?page=2&limit=5"
+```
+
+### Search Posts with Pagination
+```bash
+curl "http://localhost:3000/pajar/posts/search?q=technology&page=1&limit=10"
+curl "http://localhost:3000/pajar/public/posts/search?q=food&page=1&limit=5"
+```
+
+### Get Articles with Pagination
+```bash
+curl "http://localhost:3000/pajar/articles?page=1&limit=10"
+curl "http://localhost:3000/pajar/public/articles/featured?page=1&limit=5"
+```
+
+### Search Articles with Pagination
+```bash
+curl "http://localhost:3000/pajar/articles/search?q=health&page=1&limit=10"
+curl "http://localhost:3000/pajar/public/articles/search?q=cooking&page=2&limit=5"
+```
+
+### Get Trending Content with Pagination
+```bash
+curl "http://localhost:3000/pajar/posts/trending?page=1&limit=10"
+curl "http://localhost:3000/pajar/articles/trending?page=1&limit=10"
+```
+
+### Get Popular Posts
+```bash
+curl http://localhost:3000/pajar/stats/popular/posts?limit=5
+```
+
+### Like a Post
+```bash
+curl -X POST http://localhost:3000/pajar/posts/1/like
+```
+
+### Admin Login
+```bash
+curl -X POST http://localhost:3000/pajar/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin123"}'
+```
+
+### Delete Article (Admin)
+```bash
+curl -X DELETE http://localhost:3000/pajar/articles/1 \
+  -H "Authorization: Bearer <jwt_token>"
+```
+
+## 📝 NOTES
+- All endpoints return JSON responses
+- **NEW: Pagination Support** - All listing endpoints now support pagination with `?page=N&limit=N` parameters
+- **Pagination Metadata** - Responses include complete pagination info (totalPages, hasNext, hasPrev, etc.)
+- **Search with Pagination** - All search endpoints support pagination
+- **Trending Support** - Both posts and articles have trending endpoints with pagination
+- **Public Routes** - Dedicated `/public/posts` and `/public/articles` routes with same pagination features
+- Image files are served with /pajar/uploads/ prefix
+- View counts auto-increment when accessing detail endpoints
+- Like/Share tracking uses IP + User-Agent for unique identification
+- Admin endpoints require valid JWT token in Authorization header
+- Maximum 10 images per upload
+- Events support Zoom integration with meeting details
+
+## 🔄 PAGINATION PARAMETERS
+- `page` - Page number (default: 1)
+- `limit` - Items per page (default: 10, except featured articles default to 5)
+- `q` - Search query (for search endpoints)
+
+## 📋 PAGINATION RESPONSE FIELDS
+- `currentPage` - Current page number
+- `limit` - Items per page
+- `totalItems` - Total number of items
+- `totalPages` - Total number of pages
+- `hasNext` - Boolean indicating if there's a next page
+- `hasPrev` - Boolean indicating if there's a previous page
+- `nextPage` - Next page number (null if no next page)
+- `prevPage` - Previous page number (null if no previous page)
