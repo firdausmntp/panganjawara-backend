@@ -151,6 +151,7 @@ class VideoController {
         status, 
         tags, 
         youtube_url,
+        thumbnail_url,  // Accept custom thumbnail
         duration,
         featured
       } = req.body;
@@ -162,7 +163,7 @@ class VideoController {
       }
 
       // Validasi YouTube URL jika diubah
-      if (youtube_url) {
+      if (youtube_url && youtube_url !== existingVideo.youtube_url) {
         const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)/;
         if (!youtubeRegex.test(youtube_url)) {
           return res.status(400).json({
@@ -171,13 +172,17 @@ class VideoController {
         }
       }
 
+      // Determine the final youtube_url to use
+      const finalYoutubeUrl = youtube_url || existingVideo.youtube_url;
+
       const success = await this.videoModel.update(id, {
         title: title || existingVideo.title,
         description: description !== undefined ? description : existingVideo.description,
         author: author || existingVideo.author,
         status: status || existingVideo.status,
         tags: tags !== undefined ? tags : existingVideo.tags,
-        youtube_url: youtube_url || existingVideo.youtube_url,
+        youtube_url: finalYoutubeUrl,
+        thumbnail_url: thumbnail_url,  // Pass custom thumbnail
         duration: duration !== undefined ? duration : existingVideo.duration,
         featured: featured !== undefined ? featured : existingVideo.featured
       });

@@ -93,12 +93,17 @@ class Video {
       status, 
       tags, 
       youtube_url,
+      thumbnail_url,  // Accept custom thumbnail
       duration,
       featured
     } = videoData;
 
-    const youtube_video_id = this.extractYouTubeId(youtube_url);
-    const thumbnail_url = this.getThumbnailUrl(youtube_video_id);
+    // Extract video ID from youtube_url
+    const youtube_video_id = youtube_url ? this.extractYouTubeId(youtube_url) : null;
+    
+    // Use custom thumbnail if provided, otherwise auto-generate from YouTube
+    const finalThumbnailUrl = thumbnail_url || 
+                               (youtube_video_id ? this.getThumbnailUrl(youtube_video_id) : null);
 
     const query = `
       UPDATE videos SET 
@@ -122,7 +127,7 @@ class Video {
       tags || null,
       youtube_url, 
       youtube_video_id, 
-      thumbnail_url,
+      finalThumbnailUrl,
       duration || null, 
       featured, 
       id

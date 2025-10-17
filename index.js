@@ -10,6 +10,7 @@ const {
   createCommentsTable, 
   createArticlesTable, 
   createVideosTable,
+  createEventsTable,
   createImagesTable, 
   createStatisticsTable,
   createWilayahTable,
@@ -1804,6 +1805,7 @@ if (basePath === '') {
   try { await createWilayahTable(dbPool); } catch (e) { console.error('createWilayahTable failed:', e.message); }
   try { await createApiKeyUsageTable(dbPool); } catch (e) { console.error('createApiKeyUsageTable failed:', e.message); }
   try { await createVideosTable(dbPool); } catch (e) { console.error('createVideosTable failed:', e.message); }
+  try { await createEventsTable(dbPool); } catch (e) { console.error('createEventsTable failed:', e.message); }
 
     // Import dan inject routes sekarang - environment aware
     const createPostRoutes = require('./routes/posts');

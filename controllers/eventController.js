@@ -21,7 +21,8 @@ class EventController {
         zoom_password, 
         max_participants, 
         status, 
-        priority 
+        priority,
+        created_by  // Accept created_by from request body
       } = req.body;
 
       if (!title || !event_date) {
@@ -30,17 +31,17 @@ class EventController {
 
       const eventData = {
         title,
-        description,
+        description: description || null,
         event_date,
         duration_minutes: duration_minutes ? parseInt(duration_minutes) : 60,
-        location,
-        zoom_link,
-        zoom_meeting_id,
-        zoom_password,
+        location: location || null,
+        zoom_link: zoom_link || null,
+        zoom_meeting_id: zoom_meeting_id || null,
+        zoom_password: zoom_password || null,
         max_participants: max_participants ? parseInt(max_participants) : null,
         status: status || 'draft',
         priority: priority || 'normal',
-        created_by: req.user.username
+        created_by: created_by || (req.user ? req.user.username : 'admin')
       };
 
       const eventId = await this.eventModel.create(eventData);
@@ -58,7 +59,16 @@ class EventController {
       });
     } catch (error) {
       console.error('Error creating event:', error);
-      res.status(500).json({ error: 'Internal server error' });
+      console.error('Error details:', {
+        message: error.message,
+        code: error.code,
+        sqlMessage: error.sqlMessage,
+        stack: error.stack
+      });
+      res.status(500).json({ 
+        error: 'Internal server error',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
     }
   }
 

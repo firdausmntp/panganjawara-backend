@@ -144,6 +144,42 @@ async function createVideosTable(db) {
   }
 }
 
+// Membuat tabel events untuk menyimpan event/webinar
+async function createEventsTable(db) {
+  const query = `
+    CREATE TABLE IF NOT EXISTS events (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      title VARCHAR(255) NOT NULL,
+      description LONGTEXT,
+      event_date DATETIME NOT NULL,
+      duration_minutes INT DEFAULT 60,
+      location VARCHAR(255),
+      zoom_link VARCHAR(500),
+      zoom_meeting_id VARCHAR(100),
+      zoom_password VARCHAR(100),
+      max_participants INT,
+      current_participants INT DEFAULT 0,
+      status ENUM('draft', 'published', 'cancelled', 'completed') DEFAULT 'draft',
+      priority ENUM('low', 'normal', 'high', 'urgent') DEFAULT 'normal',
+      created_by VARCHAR(100) NOT NULL,
+      created_at DATETIME NOT NULL,
+      updated_at DATETIME,
+      published_at DATETIME,
+      INDEX idx_status (status),
+      INDEX idx_event_date (event_date),
+      INDEX idx_priority (priority),
+      INDEX idx_created (created_at)
+    )
+  `;
+  
+  try {
+    await db.execute(query);
+    console.log('Events table created or already exists');
+  } catch (error) {
+    console.error('Error creating events table:', error);
+  }
+}
+
 // Membuat tabel images untuk menyimpan semua gambar
 async function createImagesTable(db) {
   const query = `
@@ -289,6 +325,7 @@ module.exports = {
   createCommentsTable,
   createArticlesTable,
   createVideosTable,
+  createEventsTable,
   createImagesTable,
   createStatisticsTable,
   createWilayahTable,
