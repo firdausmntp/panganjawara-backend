@@ -67,19 +67,7 @@ async function ensureDbInitialized() {
   return dbPool;
 }
 
-// Middleware to ensure DB is ready
-app.use(async (req, res, next) => {
-  try {
-    req.db = await ensureDbInitialized();
-    req.supabase = getSupabase();
-    next();
-  } catch (error) {
-    console.error('DB middleware error:', error);
-    res.status(500).json({ error: 'Database connection failed' });
-  }
-});
-
-// Health check
+// Health check (no db needed)
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'ok', 
@@ -155,63 +143,22 @@ try {
   console.log('Nekolabs routes not found, skipping...');
 }
 
-// Route factory - creates routes with db injection
-function mountRoutes(basePath = '/pajar') {
-  // Routes that need db from request
-  app.use(`${basePath}/posts`, (req, res, next) => {
-    const router = createPostRoutes(req.db);
-    router(req, res, next);
-  });
-  
-  app.use(`${basePath}`, (req, res, next) => {
-    const router = createCommentRoutes(req.db);
-    router(req, res, next);
-  });
-  
-  app.use(`${basePath}/auth`, (req, res, next) => {
-    const router = createAuthRoutes(req.db);
-    router(req, res, next);
-  });
-  
-  app.use(`${basePath}/articles`, (req, res, next) => {
-    const router = createArticleRoutes(req.db);
-    router(req, res, next);
-  });
-  
-  app.use(`${basePath}/videos`, (req, res, next) => {
-    const router = createVideoRoutes(req.db);
-    router(req, res, next);
-  });
-  
-  app.use(`${basePath}/public/articles`, (req, res, next) => {
-    const router = createPublicArticleRoutes(req.db);
-    router(req, res, next);
-  });
-  
-  app.use(`${basePath}/public/videos`, (req, res, next) => {
-    const router = createPublicVideoRoutes(req.db);
-    router(req, res, next);
-  });
-  
-  app.use(`${basePath}/public/posts`, (req, res, next) => {
-    const router = createPublicPostRoutes(req.db);
-    router(req, res, next);
-  });
-  
-  app.use(`${basePath}/stats`, (req, res, next) => {
-    const router = createStatsRoutes(req.db);
-    router(req, res, next);
-  });
-  
-  app.use(`${basePath}/events`, (req, res, next) => {
-    const router = createEventRoutes(req.db);
-    router(req, res, next);
-  });
-  
-  app.use(`${basePath}/wilayah`, (req, res, next) => {
-    const router = createWilayahRoutes(req.db);
-    router(req, res, next);
-  });
+// Routes will be mounted after DB is initialized
+let routesMounted = false;
+
+function mountRoutes(basePath, db) {
+  // Create routers with db instance
+  app.use(`${basePath}/posts`, createPostRoutes(db));
+  app.use(`${basePath}`, createCommentRoutes(db));
+  app.use(`${basePath}/auth`, createAuthRoutes(db));
+  app.use(`${basePath}/articles`, createArticleRoutes(db));
+  app.use(`${basePath}/videos`, createVideoRoutes(db));
+  app.use(`${basePath}/public/articles`, createPublicArticleRoutes(db));
+  app.use(`${basePath}/public/videos`, createPublicVideoRoutes(db));
+  app.use(`${basePath}/public/posts`, createPublicPostRoutes(db));
+  app.use(`${basePath}/stats`, createStatsRoutes(db));
+  app.use(`${basePath}/events`, createEventRoutes(db));
+  app.use(`${basePath}/wilayah`, createWilayahRoutes(db));
   
   // Proxy routes (no db needed)
   app.use(`${basePath}/pangan`, createPanganRoutes());
@@ -222,13 +169,33 @@ function mountRoutes(basePath = '/pajar') {
   }
 }
 
-// Mount all routes
-mountRoutes('/pajar');
+// Initialize and mount routes on first request
+async function ensureRoutesAndDb(req, res, next) {
+  try {
+    if (!isInitialized) {
+      await ensureDbInitialized();
+    }
+    
+    if (!routesMounted && dbPool) {
+      mountRoutes('/pajar', dbPool);
+      mountRoutes('', dbPool);
+      routesMounted = true;
+      console.log('Routes mounted successfully');
+    }
+    
+    req.db = dbPool;
+    req.supabase = getSupabase();
+    next();
+  } catch (error) {
+    console.error('Init error:', error);
+    res.status(500).json({ error: 'Server initialization failed', message: error.message });
+  }
+}
 
-// Also mount at root for flexibility
-mountRoutes('');
+// Apply initialization middleware
+app.use(ensureRoutesAndDb);
 
-// 404 handler
+// 404 handler - must be after routes
 app.use((req, res) => {
   res.status(404).json({ 
     error: 'Not Found',
