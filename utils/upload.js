@@ -5,22 +5,35 @@ const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
 const ImagePathUtils = require('./imagePathUtils');
 
-// Ensure uploads directory exists
+// Check if running in Vercel serverless environment
+const isVercel = process.env.VERCEL || process.env.VERCEL_ENV;
+
+// Ensure uploads directory exists (only for non-Vercel environments)
 const uploadsDir = path.join(__dirname, '../uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
+if (!isVercel) {
+  try {
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+  } catch (err) {
+    console.warn('Could not create uploads directory:', err.message);
+  }
 }
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadsDir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueName = uuidv4() + path.extname(file.originalname);
-    cb(null, uniqueName);
-  }
-});
+// Configure storage based on environment
+// Vercel: use memory storage (files handled by Supabase Storage)
+// Local: use disk storage
+const storage = isVercel 
+  ? multer.memoryStorage()
+  : multer.diskStorage({
+      destination: function (req, file, cb) {
+        cb(null, uploadsDir);
+      },
+      filename: function (req, file, cb) {
+        const uniqueName = uuidv4() + path.extname(file.originalname);
+        cb(null, uniqueName);
+      }
+    });
 
 // File filter for images only
 const fileFilter = (req, file, cb) => {
