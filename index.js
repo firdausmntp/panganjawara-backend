@@ -4,14 +4,14 @@ const cors = require('cors');
 const geoip = require('geoip-lite');
 const { initDatabase, getPool, closePool } = require('./config/database');
 const EnvironmentConfig = require('./utils/environmentConfig');
-const { 
-  createUsersTable, 
-  createPostsTable, 
-  createCommentsTable, 
-  createArticlesTable, 
+const {
+  createUsersTable,
+  createPostsTable,
+  createCommentsTable,
+  createArticlesTable,
   createVideosTable,
   createEventsTable,
-  createImagesTable, 
+  createImagesTable,
   createStatisticsTable,
   createWilayahTable,
   createApiKeyUsageTable,
@@ -48,7 +48,7 @@ const basePath = envConfig.getApiBasePath();
 app.get(basePath === '' ? '/' : basePath, (req, res) => {
   // Force /pajar base URL for hosted environment
   const baseUrl = `https://${req.get('host')}/pajar`;
-  
+
   // Check if client wants JSON or HTML
   const acceptHeader = req.get('Accept') || '';
   if (acceptHeader.includes('application/json') || req.query.format === 'json') {
@@ -58,10 +58,10 @@ app.get(basePath === '' ? '/' : basePath, (req, res) => {
       version: "1.0.0",
       description: "Comprehensive REST API for managing posts, comments, and articles with admin authentication, image uploads, and analytics",
       baseUrl: baseUrl,
-      
+
       features: [
         "🌐 Public Content Creation - Anyone can create posts and comments with images",
-        "🔐 Admin Authentication - JWT-based authentication for content management", 
+        "🔐 Admin Authentication - JWT-based authentication for content management",
         "📝 Post Management - Public creation, admin moderation with view & like tracking",
         "💬 Comment System - Public commenting with admin moderation and likes",
         "📰 Article System - CMS-like article management (admin-only) with view & like tracking",
@@ -122,7 +122,7 @@ app.get(basePath === '' ? '/' : basePath, (req, res) => {
               headers: { "Authorization": "Bearer YOUR_JWT_TOKEN" }
             },
             [`PUT ${baseUrl}/auth/change-password`]: {
-              description: "Change admin password", 
+              description: "Change admin password",
               auth: "required",
               body: { currentPassword: "old_pass", newPassword: "new_pass" }
             },
@@ -159,7 +159,7 @@ app.get(basePath === '' ? '/' : basePath, (req, res) => {
               contentType: "multipart/form-data",
               body: {
                 title: "Post title (required)",
-                content: "Post content (required)", 
+                content: "Post content (required)",
                 author: "Author name (required)",
                 images: "Multiple image files (optional, max 10)"
               }
@@ -211,7 +211,7 @@ app.get(basePath === '' ? '/' : basePath, (req, res) => {
               auth: "admin_only"
             },
             [`DELETE ${baseUrl}/comments/:id`]: {
-              description: "Delete comment", 
+              description: "Delete comment",
               auth: "admin_only"
             }
           }
@@ -232,7 +232,7 @@ app.get(basePath === '' ? '/' : basePath, (req, res) => {
             },
             [`GET ${baseUrl}/articles/search`]: {
               description: "Search articles by title/content",
-              auth: "public", 
+              auth: "public",
               query: "?q=search_term"
             },
             [`GET ${baseUrl}/articles/:id`]: {
@@ -419,7 +419,7 @@ app.get(basePath === '' ? '/' : basePath, (req, res) => {
 
         statistics: {
           description: "Comprehensive analytics system with view tracking",
-          baseRoute: `${baseUrl}/stats`, 
+          baseRoute: `${baseUrl}/stats`,
           routes: {
             [`GET ${baseUrl}/stats/popular/:type`]: {
               description: "Get popular content by views (public)",
@@ -491,11 +491,11 @@ app.get(basePath === '' ? '/' : basePath, (req, res) => {
   -F "content=Hello from the API!" \\
   -F "author=API User" \\
   -F "images=@photo.jpg"`,
-          
+
           adminLogin: `curl -X POST ${baseUrl}/auth/login \\
   -H "Content-Type: application/json" \\
   -d '{"username":"admin","password":"admin123"}'`,
-          
+
           getStats: `curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \\
   ${baseUrl}/stats/dashboard`
         }
@@ -507,12 +507,12 @@ app.get(basePath === '' ? '/' : basePath, (req, res) => {
           example: { message: "Operation successful", data: "..." }
         },
         error: {
-          description: "Error responses", 
+          description: "Error responses",
           example: { error: "Error description" }
         },
         httpCodes: {
           200: "Success",
-          201: "Created", 
+          201: "Created",
           400: "Bad Request",
           401: "Unauthorized",
           403: "Forbidden (Admin required)",
@@ -1337,9 +1337,9 @@ app.get(basePath === '' ? '/' : basePath, (req, res) => {
 
 // Health check - environment aware
 app.get(`${basePath}/health`, (req, res) => {
-  res.json({ 
-    status: 'ok', 
-    uptime: process.uptime(), 
+  res.json({
+    status: 'ok',
+    uptime: process.uptime(),
     timestamp: Date.now(),
     database: dbPool ? 'connected' : 'disconnected',
     environment: process.env.NODE_ENV || 'development',
@@ -1508,7 +1508,7 @@ if (basePath === '') {
   // Documentation route alias
   app.get('/pajar', (req, res) => {
     const baseUrl = `https://${req.get('host')}/pajar`;
-    
+
     // Check if client wants JSON or HTML
     const acceptHeader = req.get('Accept') || '';
     if (acceptHeader.includes('application/json') || req.query.format === 'json') {
@@ -1520,10 +1520,10 @@ if (basePath === '') {
         baseUrl: baseUrl,
         note: "⚠️ This is a compatibility alias. Primary endpoint is at root (/)",
         primaryEndpoint: `https://${req.get('host')}/`,
-        
+
         features: [
           "🌐 Public Content Creation - Anyone can create posts and comments with images",
-          "🔐 Admin Authentication - JWT-based authentication for content management", 
+          "🔐 Admin Authentication - JWT-based authentication for content management",
           "📝 Post Management - Public creation, admin moderation with view & like tracking",
           "💬 Comment System - Public commenting with admin moderation and likes",
           "📰 Article System - CMS-like article management (admin-only) with view & like tracking",
@@ -1552,7 +1552,7 @@ if (basePath === '') {
 
         quickLinks: {
           "Health Check": `${baseUrl}/health`,
-          "Posts": `${baseUrl}/posts`, 
+          "Posts": `${baseUrl}/posts`,
           "Location": `${baseUrl}/location`,
           "Statistics": `${baseUrl}/stats/popular/all`
         }
@@ -1774,9 +1774,9 @@ if (basePath === '') {
 
   // Health check alias
   app.get('/pajar/health', (req, res) => {
-    res.json({ 
-      status: 'ok', 
-      uptime: process.uptime(), 
+    res.json({
+      status: 'ok',
+      uptime: process.uptime(),
       timestamp: Date.now(),
       database: dbPool ? 'connected' : 'disconnected',
       environment: process.env.NODE_ENV || 'development',
@@ -1801,11 +1801,11 @@ if (basePath === '') {
     dbPool = await initDatabase();
     console.log('Database pool connected successfully');
 
-  // Ensure necessary tables exists
-  try { await createWilayahTable(dbPool); } catch (e) { console.error('createWilayahTable failed:', e.message); }
-  try { await createApiKeyUsageTable(dbPool); } catch (e) { console.error('createApiKeyUsageTable failed:', e.message); }
-  try { await createVideosTable(dbPool); } catch (e) { console.error('createVideosTable failed:', e.message); }
-  try { await createEventsTable(dbPool); } catch (e) { console.error('createEventsTable failed:', e.message); }
+    // Ensure necessary tables exists
+    try { await createWilayahTable(dbPool); } catch (e) { console.error('createWilayahTable failed:', e.message); }
+    try { await createApiKeyUsageTable(dbPool); } catch (e) { console.error('createApiKeyUsageTable failed:', e.message); }
+    try { await createVideosTable(dbPool); } catch (e) { console.error('createVideosTable failed:', e.message); }
+    try { await createEventsTable(dbPool); } catch (e) { console.error('createEventsTable failed:', e.message); }
 
     // Import dan inject routes sekarang - environment aware
     const createPostRoutes = require('./routes/posts');
@@ -1819,7 +1819,10 @@ if (basePath === '') {
     const createStatsRoutes = require('./routes/stats');
     const createEventRoutes = require('./routes/events');
     const createWilayahRoutes = require('./routes/wilayah');
-    
+    const createPanganRoutes = require('./routes/pangan');
+    const createBmkgRoutes = require('./routes/bmkg');
+    const nekolabsRoutes = require('./routes/nekolabs');
+
     app.use(`${basePath}/posts`, createPostRoutes(dbPool));
     app.use(`${basePath}`, createCommentRoutes(dbPool));
     app.use(`${basePath}/auth`, createAuthRoutes(dbPool));
@@ -1831,6 +1834,9 @@ if (basePath === '') {
     app.use(`${basePath}/stats`, createStatsRoutes(dbPool));
     app.use(`${basePath}/events`, createEventRoutes(dbPool));
     app.use(`${basePath}/wilayah`, createWilayahRoutes(dbPool));
+    app.use(`${basePath}/pangan`, createPanganRoutes());
+    app.use(`${basePath}/bmkg`, createBmkgRoutes());
+    app.use(`${basePath}/nekolabs`, nekolabsRoutes);
 
     // Add route aliases for backward compatibility when basePath is empty
     if (basePath === '') {
@@ -1846,7 +1852,10 @@ if (basePath === '') {
       app.use('/pajar/stats', createStatsRoutes(dbPool));
       app.use('/pajar/events', createEventRoutes(dbPool));
       app.use('/pajar/wilayah', createWilayahRoutes(dbPool));
-      
+      app.use('/pajar/pangan', createPanganRoutes());
+      app.use('/pajar/bmkg', createBmkgRoutes());
+      app.use('/pajar/nekolabs', nekolabsRoutes);
+
       console.log('✅ Backward compatibility routes mounted at /pajar/* for subdirectory deployment');
     }
 
