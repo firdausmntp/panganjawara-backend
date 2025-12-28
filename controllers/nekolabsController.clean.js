@@ -69,29 +69,38 @@ exports.generateTextGemini = async (req, res) => {
 exports.chatCompletion = async (req, res) => {
   try {
     const { messages, model = 'gemini-2.5-flash', systemPrompt, sessionId, version = 'v1' } = req.body;
-    if (!messages || !Array.isArray(messages) || messages.length === 0) return res.status(400).json({ success: false, error: 'Parameter "messages" array diperlukan' });
-    const lastUserMessage = [...messages].reverse().find(m => m.role === 'user'); if (!lastUserMessage) return res.status(400).json({ success: false, error: 'Minimal satu pesan dari user diperlukan' });
-    const text = lastUserMessage.content;
-    try {
-      const validVersions = ['v1', 'v2']; const apiVersion = validVersions.includes(version) ? version : 'v1';
-      const variant = req.query?.variant || req.body?.variant;
-      const targetPath = variant ? `text-generation/gemini/${variant}/${apiVersion}` : `text-generation/gemini/2.5-flash/${apiVersion}`;
-      const apiUrl = `${NEKOLABS_BASE_URL}/${targetPath}`;
-      const params = { text }; if (systemPrompt) params.systemPrompt = systemPrompt; if (sessionId) params.sessionId = sessionId;
-      const headers = {}; const nekoKey = getNekoKey(req); if (nekoKey) headers['X-NekoKey'] = nekoKey;
-      const response = await axios.get(apiUrl, { params, headers, timeout: 30000 });
-      return res.json({ success: true, source: 'nekolabs', version: apiVersion, ...response.data });
-    } catch (nekoError) {
-      console.warn('[NekoLabs] Primary API failed, trying fallback:', nekoError.message);
-      const GOOGLE_API_KEY = process.env.GOOGLE_GEMINI_API_KEY; if (!GOOGLE_API_KEY) throw new Error('NekoLabs API failed and no Google API key configured');
-      const geminiModel = model === 'gemini-2.5-flash-lite' ? 'gemini-2.5-flash-lite' : 'gemini-2.5-flash';
-      const googleApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${GOOGLE_API_KEY}`;
-      const contents = messages.map(m => ({ role: m.role === 'assistant' ? 'model' : m.role, parts: [{ text: m.content }] }));
-      const googlePayload = { contents, generationConfig: { temperature: 0.7, maxOutputTokens: 2048 } }; if (systemPrompt) googlePayload.systemInstruction = { parts: [{ text: systemPrompt }] };
-      const googleResponse = await axios.post(googleApiUrl, googlePayload, { headers: { 'Content-Type': 'application/json' }, timeout: 60000 });
-      const googleData = googleResponse.data; const responseText = googleData.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      return res.json({ success: true, source: 'google-gemini', model: geminiModel, result: responseText, usage: googleData.usageMetadata });
+    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+      return res.status(400).json({ success: false, error: 'Parameter \"messages\" array diperlukan' });
     }
+
+    const validVersions = ['v1', 'v2'];
+    const apiVersion = validVersions.includes(version) ? version : 'v1';
+
+    // Model mapping: "gemini-2.5-flash" -> "2.5-flash", "gemini-2.5-pro" -> "2.5-pro", "gemini-3.0" -> "3.0"
+    const variantFromModel = typeof model === 'string' && model.startsWith('gemini-') ? model.slice('gemini-'.length) : null;
+    const variant = req.query?.variant || req.body?.variant || variantFromModel || '2.5-flash';
+
+    // No upstream chat endpoint: we convert message history into a single prompt and use Gemini text generation.
+    const parts = [];
+    for (const m of messages) {
+      if (!m || typeof m.content !== 'string') continue;
+      const role = m.role === 'assistant' ? 'Assistant' : (m.role === 'system' ? 'System' : 'User');
+      parts.push(`${role}: ${m.content}`);
+    }
+    const text = parts.length ? parts.join('\n') : '';
+    if (!text) return res.status(400).json({ success: false, error: 'Minimal satu pesan valid diperlukan' });
+
+    const apiUrl = `${NEKOLABS_BASE_URL}/text-generation/gemini/${variant}/${apiVersion}`;
+    const params = { text };
+    if (systemPrompt) params.systemPrompt = systemPrompt;
+    if (sessionId) params.sessionId = sessionId;
+
+    const headers = {};
+    const nekoKey = getNekoKey(req);
+    if (nekoKey) headers['X-NekoKey'] = nekoKey;
+
+    const response = await axios.get(apiUrl, { params, headers, timeout: 60000 });
+    return res.json(response.data);
   } catch (error) {
     console.error('Error chat completion:', error.message);
     if (error.response) return res.status(error.response.status).json({ success: false, error: error.response.data?.error || 'Error dari API', details: error.response.data });
