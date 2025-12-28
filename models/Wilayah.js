@@ -5,7 +5,8 @@ class Wilayah {
 
   // Helper: count dots in kode
   dotCountExpr() {
-    return 'LENGTH(kode) - LENGTH(REPLACE(kode, \'\.\', \'\'))';
+    // PostgreSQL-compatible; counts '.' characters in kode
+    return "LENGTH(kode) - LENGTH(REPLACE(kode, '.', ''))";
   }
 
   async getProvinsi() {
@@ -23,7 +24,7 @@ class Wilayah {
     const query = `
       SELECT kode, nama
       FROM wilayah
-      WHERE kode LIKE CONCAT(?, '.%')
+      WHERE kode LIKE (? || '.%')
         AND ${this.dotCountExpr()} = 1
       ORDER BY kode
     `;
@@ -36,7 +37,7 @@ class Wilayah {
     const query = `
       SELECT kode, nama
       FROM wilayah
-      WHERE kode LIKE CONCAT(?, '.%')
+      WHERE kode LIKE (? || '.%')
         AND ${this.dotCountExpr()} = 2
       ORDER BY kode
     `;
@@ -49,7 +50,7 @@ class Wilayah {
     const query = `
       SELECT kode, nama
       FROM wilayah
-      WHERE kode LIKE CONCAT(?, '.%')
+      WHERE kode LIKE (? || '.%')
         AND ${this.dotCountExpr()} = 3
       ORDER BY kode
     `;

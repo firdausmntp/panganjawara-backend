@@ -96,38 +96,146 @@ app.get('/pajar/health', (req, res) => {
 // Location endpoint - IP geolocation
 const geoip = require('geoip-lite');
 
+function normalizeIp(value) {
+  if (!value) return '';
+  let ip = String(value).trim();
+  // If value includes a port (rare in headers), drop it
+  if (ip.includes(':') && ip.includes('.')) {
+    // Might be IPv4:port or ::ffff:IPv4
+    ip = ip.replace(/^::ffff:/, '');
+    ip = ip.split(':')[0];
+  }
+  ip = ip.replace(/^::ffff:/, '');
+  return ip;
+}
+
+function isPrivateOrLocalIp(ip) {
+  if (!ip) return true;
+  if (ip === '::1' || ip === '127.0.0.1') return true;
+  // IPv6 local/link-local/ULA
+  if (ip.startsWith('fc') || ip.startsWith('fd') || ip.startsWith('fe80:')) return true;
+
+  const parts = ip.split('.').map(n => parseInt(n, 10));
+  if (parts.length !== 4 || parts.some(n => Number.isNaN(n))) return false;
+  const [a, b] = parts;
+  if (a === 10) return true;
+  if (a === 127) return true;
+  if (a === 192 && b === 168) return true;
+  if (a === 172 && b >= 16 && b <= 31) return true;
+  return false;
+}
+
 function getClientIp(req) {
-  const xff = (req.headers['x-forwarded-for'] || '').split(',').map(s => s.trim()).filter(Boolean);
-  return xff.length ? xff[0] : req.connection?.remoteAddress?.replace('::ffff:', '') || req.ip;
+  const headerCandidates = [];
+  const xff = (req.headers['x-forwarded-for'] || '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+  headerCandidates.push(...xff);
+  headerCandidates.push(req.headers['x-real-ip']);
+  headerCandidates.push(req.headers['cf-connecting-ip']);
+  headerCandidates.push(req.headers['true-client-ip']);
+
+  const socketIp = req.socket?.remoteAddress || req.connection?.remoteAddress;
+  const reqIp = req.ip;
+
+  const candidates = [...headerCandidates, socketIp, reqIp]
+    .map(normalizeIp)
+    .filter(Boolean);
+
+  // Prefer the first public IP
+  const publicIp = candidates.find(ip => !isPrivateOrLocalIp(ip));
+  return publicIp || candidates[0] || '';
+}
+
+function getVercelGeo(req) {
+  const h = req.headers;
+  const latitude = parseFloat(h['x-vercel-ip-latitude']);
+  const longitude = parseFloat(h['x-vercel-ip-longitude']);
+
+  const country = h['x-vercel-ip-country'];
+  const region = h['x-vercel-ip-country-region'];
+  const city = h['x-vercel-ip-city'];
+
+  const hasLatLon = Number.isFinite(latitude) && Number.isFinite(longitude);
+  const hasAnyMeta = Boolean(country || region || city);
+
+  if (!hasLatLon && !hasAnyMeta) return null;
+
+  return {
+    source: 'vercel',
+    latitude: hasLatLon ? latitude : null,
+    longitude: hasLatLon ? longitude : null,
+    country: country || null,
+    region: region || null,
+    city: city || null
+  };
 }
 
 app.get(['/pajar/location', '/location'], async (req, res) => {
   let ip = req.query.ip || getClientIp(req);
   if (ip === '::1' || ip === '127.0.0.1') ip = '160.22.134.39';
-  
+
+  // 1) Prefer Vercel geolocation headers when available
+  const vercelGeo = getVercelGeo(req);
+  if (vercelGeo && vercelGeo.latitude != null && vercelGeo.longitude != null) {
+    return res.json({
+      type: 'Feature',
+      geometry: {
+        type: 'Point',
+        coordinates: [vercelGeo.longitude, vercelGeo.latitude]
+      },
+      properties: {
+        ip,
+        source: vercelGeo.source,
+        country: vercelGeo.country,
+        region: vercelGeo.region,
+        city: vercelGeo.city
+      }
+    });
+  }
+
+  // 2) Fallback to geoip-lite database
   const location = geoip.lookup(ip);
-  
-  if (!location) {
+  if (location) {
+    return res.json({
+      type: 'Feature',
+      geometry: {
+        type: 'Point',
+        coordinates: [location.ll[1], location.ll[0]]
+      },
+      properties: {
+        ip,
+        source: 'geoip-lite',
+        country: location.country,
+        region: location.region,
+        city: location.city,
+        timezone: location.timezone
+      }
+    });
+  }
+
+  // 3) If we at least have Vercel metadata, return it (without coordinates)
+  if (vercelGeo) {
     return res.json({
       type: 'Feature',
       geometry: null,
-      properties: { ip, error: 'Location not found' }
+      properties: {
+        ip,
+        source: vercelGeo.source,
+        country: vercelGeo.country,
+        region: vercelGeo.region,
+        city: vercelGeo.city,
+        error: 'Coordinates not available'
+      }
     });
   }
-  
-  res.json({
+
+  // 4) Nothing available
+  return res.json({
     type: 'Feature',
-    geometry: {
-      type: 'Point',
-      coordinates: [location.ll[1], location.ll[0]]
-    },
-    properties: {
-      ip,
-      country: location.country,
-      region: location.region,
-      city: location.city,
-      timezone: location.timezone
-    }
+    geometry: null,
+    properties: { ip, source: null, error: 'Location not found' }
   });
 });
 
