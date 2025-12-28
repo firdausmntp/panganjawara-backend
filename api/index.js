@@ -93,6 +93,44 @@ app.get('/pajar/health', (req, res) => {
   });
 });
 
+// Location endpoint - IP geolocation
+const geoip = require('geoip-lite');
+
+function getClientIp(req) {
+  const xff = (req.headers['x-forwarded-for'] || '').split(',').map(s => s.trim()).filter(Boolean);
+  return xff.length ? xff[0] : req.connection?.remoteAddress?.replace('::ffff:', '') || req.ip;
+}
+
+app.get(['/pajar/location', '/location'], async (req, res) => {
+  let ip = req.query.ip || getClientIp(req);
+  if (ip === '::1' || ip === '127.0.0.1') ip = '160.22.134.39';
+  
+  const location = geoip.lookup(ip);
+  
+  if (!location) {
+    return res.json({
+      type: 'Feature',
+      geometry: null,
+      properties: { ip, error: 'Location not found' }
+    });
+  }
+  
+  res.json({
+    type: 'Feature',
+    geometry: {
+      type: 'Point',
+      coordinates: [location.ll[1], location.ll[0]]
+    },
+    properties: {
+      ip,
+      country: location.country,
+      region: location.region,
+      city: location.city,
+      timezone: location.timezone
+    }
+  });
+});
+
 // Root documentation
 app.get(['/', '/pajar', '/api'], (req, res) => {
   const baseUrl = `https://${req.get('host')}/pajar`;
